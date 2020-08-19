@@ -9,7 +9,7 @@ const io = require('socket.io')(server, options);
 const chatServer = require('./chat-server');
 
 app.use(express.static(__dirname + '/public'));
-
+app.set('port', (process.env.PORT || PORT));
 app.get('/', function(req, res) {
 	res.render('index.ejs');
 });
