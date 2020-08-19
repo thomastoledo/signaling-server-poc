@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/style.css">
+    <title>Intro to WebRTC</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+    <script src="js/app.js" type="module"></script>
+</head>
+<body>
+    <!-- <section>
+        Video: <select id="camera">
+            <option value="none">None</option>
+        </select>
+    </section> -->
+
+    <video id="myVideoArea" autoplay></video>
+    <video id="otherVideoArea" autoplay></video>
+
+    <!-- <button id="takePicButton">Take picture!</button>
+    <canvas id="profilePicCanvas" style="display: none;"></canvas>
+    <div>
+        <img id="profilePictureOutput">
+    </div> -->
+    <section id="connect-section">
+        <form>
+            <label for="name">Your Name</label><br/>
+            <input id="name" type="text"/><br/><br/>
+
+            <label for="recipient">Your friend's name</label><br/>
+            <input id="recipient" type="text"/><br/><br/>
+            
+            <button id="connect">Connect</button>
+        </form>
+    </section>
+    <section id="chat-section" class="display-none">
+        <label for="message">Message</label><br/>
+        <input id="message" type="text"/><br/>
+        <input id="sendMessage" type="submit"/>
+        <div id="chatArea">Message Output:<br/></div>
+        <div id="signalingArea">Signaling Messages:<br/></div>
+    </section>
+</body>
+</html>
