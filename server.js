@@ -40,6 +40,14 @@ io.on('connect', (socket) => {
 	socket.on('signal', function({type, message, room}) {
 		socket.to(room).emit('signaling_message', {type, message});
 	});
+
+	socket.on('disconnecting', function() {
+		Object.keys(this.rooms)
+		.filter(room => chatServer.existsRoom(room))
+		.forEach(room => {
+			chatServer.disconnectUsers(room);
+		})
+	})
 });
 
 console.log(`server started on port ${PORT}`);

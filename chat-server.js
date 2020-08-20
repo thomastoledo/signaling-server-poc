@@ -11,6 +11,8 @@ function connectUsers(userFrom, userTo, socket) {
         } else {
             finishConnectionBetweenUsers(userTo, userFrom);
             room = `${userTo}${userFrom}`.replace(' ', '');
+
+            rooms[room] = [userFrom, userTo];
         }
         joinRoom(room, socket);
     }
@@ -18,7 +20,7 @@ function connectUsers(userFrom, userTo, socket) {
 
 function joinRoom(room, socket) {
     console.log(`Joingin room ${room}`);
-    socket.join(`${room}`);
+    socket.join(room);
 }
 
 function startConnectionBetweenUsers(user1, user2) {
@@ -47,7 +49,13 @@ function getRoom(user1, user2) {
     return room.replace(' ', '');
 }
 
-function disconnectUsers(user1, user2) {
+function existsRoom(room) {
+    console.log(`rooms[${room}]`, rooms[room]);
+    return !!rooms[room];
+}
+
+function disconnectUsers(room) {
+    const [user1, user2] = rooms[room];
     delete establishedConnections[user1];
     delete establishedConnections[user2];
 }
@@ -57,4 +65,5 @@ module.exports = {
     areUsersConnected,
     getRoom,
     disconnectUsers,
+    existsRoom,
 }
