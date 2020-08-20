@@ -58,6 +58,7 @@ function disconnectUsers(room) {
     const [user1, user2] = rooms[room];
     delete establishedConnections[user1];
     delete establishedConnections[user2];
+    delete rooms[room];
 }
 
 module.exports = {
