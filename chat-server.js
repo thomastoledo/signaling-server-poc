@@ -4,6 +4,8 @@ const rooms = {};
 
 function connectUsers(userFrom, userTo, socket) {
     let room;
+    console.log('alreadyAsked(userFrom, userTo)', alreadyAsked(userFrom, userTo));
+    console.log('alreadyAsked(userTo, userFrom)', alreadyAsked(userTo, userFrom));
     if (!alreadyAsked(userFrom, userTo)) {
         if (!alreadyAsked(userTo, userFrom)) {
             startConnectionBetweenUsers(userFrom, userTo);
@@ -11,9 +13,11 @@ function connectUsers(userFrom, userTo, socket) {
         } else {
             finishConnectionBetweenUsers(userTo, userFrom);
             room = `${userTo}${userFrom}`.replace(' ', '');
-
-            rooms[room] = [userFrom, userTo];
         }
+        if (!rooms[room]) {
+            rooms[room] = [];
+        }
+        rooms[room].push(userFrom);
         joinRoom(room, socket);
     }
 }
@@ -56,6 +60,8 @@ function existsRoom(room) {
 
 function disconnectUsers(room) {
     const [user1, user2] = rooms[room];
+    delete pendingConnections[user1];
+    delete pendingConnections[user2];
     delete establishedConnections[user1];
     delete establishedConnections[user2];
     delete rooms[room];
