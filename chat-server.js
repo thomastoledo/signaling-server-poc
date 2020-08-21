@@ -1,6 +1,9 @@
 const pendingConnections = {};
 const establishedConnections = {};
 const rooms = {};
+const uuids = {};
+
+let signalingId = 0;
 
 function connectUsers(userFrom, userTo, socket) {
     let room;
@@ -20,6 +23,14 @@ function connectUsers(userFrom, userTo, socket) {
         rooms[room].push(userFrom);
         joinRoom(room, socket);
     }
+}
+
+function generateSignalingIdForRoom(room) {
+    if (!uuids[room]) {
+        uuids[room] = signalingId;
+        signalingId++;
+    }
+    return uuids[room];
 }
 
 function joinRoom(room, socket) {
@@ -73,4 +84,5 @@ module.exports = {
     getRoom,
     disconnectUsers,
     existsRoom,
+    generateSignalingIdForRoom
 }

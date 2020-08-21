@@ -21,11 +21,12 @@ io.on('connect', (socket) => {
 
 		chatServer.connectUsers(userFrom, userTo, socket);
 		const room = chatServer.getRoom(userFrom, userTo);
+		const signalingUiid = chatServer.generateSignalingIdForRoom(room);
 		io.to(room).emit('joined_room', {room});
 
 		io.to(room).emit('signaling_message', {
 			type: 'user_here', 
-			message: userHereMsg
+			message: signalingUiid
 		})
 
 		if (chatServer.areUsersConnected(userFrom, userTo)) {
@@ -42,6 +43,7 @@ io.on('connect', (socket) => {
 	});
 
 	socket.on('disconnecting', function() {
+		console.log('disconnecting from socket');
 		Object.keys(this.rooms)
 		.filter(room => chatServer.existsRoom(room))
 		.forEach(room => {

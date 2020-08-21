@@ -35,11 +35,13 @@
         </form>
     </section>
     <section id="chat-section" class="display-none">
-        <label for="message">Message</label><br/>
-        <input id="message" type="text"/><br/>
-        <input id="sendMessage" type="submit"/>
+        <form>
+            <label for="message">Message</label><br/>
+            <input id="message" type="text" style="height: 20px; width: 300px;"/><br/>
+            <input id="sendMessage" type="submit"/>
+        </form>
         <div id="chatArea">Message Output:<br/></div>
-        <div id="signalingArea">Signaling Messages:<br/></div>
+        <div id="signalingArea" style="display: none;">Signaling Messages:<br/></div>
     </section>
 </body>
 </html>
