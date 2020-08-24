@@ -101,17 +101,22 @@ function connect(userFrom, userTo) {
             case 'user_here': {
                 const id = message;
                 // We create a new dataChannel with the same name as the WebSocket room
-                signalingChannel = rtcPeerConn.createDataChannel(room, {negotiated: true, id});
+                if (!signalingChannel) {
+                    signalingChannel = rtcPeerConn.createDataChannel(room, {negotiated: true, id});
+    
+                    signalingChannel.onmessage = function({data}) {
+                        console.log('signaling on message   ', new Date())
+                        displayMessage(chatArea, data);
+                    }
 
-                signalingChannel.onopen = function() {
-                    // at opening, just send every queued message
-                    signalingMsgQueue.forEach(msg => this.send(msg));
-                    // and then clear the queue
-                    signalingMsgQueue.length = 0;
-                }
-
-                signalingChannel.onmessage = function({data}) {
-                    displayMessage(chatArea, data);
+                    signalingChannel.onopen = function() {
+                        console.log('signaling on open', new Date())
+                        // at opening, just send every queued message
+                        signalingMsgQueue.forEach(msg => this.send(msg));
+                        // and then clear the queue
+                        signalingMsgQueue.length = 0;
+                    }
+    
                 }
                 break;
             }
