@@ -1,6 +1,6 @@
 
 export function logError(error) {
-    displayMessage(signalingArea, `the following error occured during signaling: ${error}`);
+   console.error(`the following error occured during signaling: ${error}`);
 }
 
 export function hideElement(id) {

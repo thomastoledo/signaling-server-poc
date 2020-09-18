@@ -18,7 +18,6 @@ const recipientName = document.getElementById('recipient');
 const message = document.querySelector('#message');
 const sendMessage = document.querySelector('#sendMessage');
 const chatArea = document.querySelector('#chatArea');
-const signalingArea = document.querySelector('#signalingArea');
 
 let room;
 let socket;
@@ -123,12 +122,14 @@ function initiateSignalingChannel(id) {
 
     signalingChannel.onmessage = function ({ data }) { displayMessage(chatArea, data) };
 
-    signalingChannel.onopen = function () {
-        // at opening, just send every queued message
-        signalingMsgQueue.forEach(msg => this.send(msg));
-        // and then clear the queue
-        signalingMsgQueue.length = 0;
-    };
+    // at opening, just send every queued message
+    signalingChannel.onopen = onOpenSignalingChannel;
+}
+
+function onOpenSignalingChannel() {
+    signalingMsgQueue.forEach(msg => signalingChannel.send(msg));
+    // and then clear the queue
+    signalingMsgQueue.length = 0;
 }
 
 function startSignaling() {
