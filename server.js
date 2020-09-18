@@ -24,10 +24,7 @@ io.on('connect', (socket) => {
 		const signalingUiid = chatServer.generateSignalingIdForRoom(room);
 		io.to(room).emit('joined_room', {room});
 
-		io.to(room).emit('signaling_message', {
-			type: 'user_here', 
-			message: signalingUiid
-		})
+		io.to(room).emit('signaling_message', { type: 'user_here', message: signalingUiid});
 
 		if (chatServer.areUsersConnected(userFrom, userTo)) {
 			console.log(`User ${userFrom} and user ${userTo} are now connected to room ${room}`);

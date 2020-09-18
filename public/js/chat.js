@@ -164,7 +164,6 @@ function onTrack(e) {
 }
 
 function onSignalingStateChange() {
-    console.log(rtcPeerConn.signalingState)
     isNegotiating = (rtcPeerConn.signalingState !== 'stable');
 }
 
