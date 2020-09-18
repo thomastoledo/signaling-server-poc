@@ -1,5 +1,16 @@
 
-import {myVideoArea, otherVideoArea, startStream, displayStream} from './video.js';
+import { 
+    myVideoArea, 
+    otherVideoArea, 
+    startStream, 
+    displayStream 
+} from './video.js';
+import { 
+    displayElement, 
+    displayMessage, 
+    hideElement, 
+    logError
+} from './functions.js';
 
 const connectBtn = document.querySelector('#connect');
 const name = document.getElementById('name');
@@ -8,6 +19,7 @@ const message = document.querySelector('#message');
 const sendMessage = document.querySelector('#sendMessage');
 const chatArea = document.querySelector('#chatArea');
 const signalingArea = document.querySelector('#signalingArea');
+
 let room;
 let socket;
 
@@ -54,113 +66,86 @@ function connect(userFrom, userTo) {
     // Connexion au server SocketIO
     socket = io();
     // When the socket is connected to the server
-    socket.on('connect', () => {
-        // We emit an event to connect both users (it's a request from userFrom)
-        socket.emit('newUser', {userFrom, userTo});
-    });
+    socket.on('connect', () => onConnect(userFrom, userTo));
 
     // When a user joined a room
-    socket.on('joined_room', (res) => {
-        // It's done in the server-side. Once it's done, this event is emitted
-        // we store the current room
-        room = res.room;
-    });
+    socket.on('joined_room', (res) => { room = res.room });
 
     // Now those are our signaling events
     socket.on('signaling_message', ({type, message}) => {
-        // Used for debugging
-        displayMessage(signalingArea, `Signaling received of type ${type}`);
 
-        // If the rtcPeerConnection is not set, we set it
-        if (!rtcPeerConn) {
-            startSignaling();
-        }
-
-        switch(type) {
-            case 'ice_candidate': {
-                displayMessage(signalingArea, `[SOCKET SIGNALING ICE_CANDIDATE] Candidate received`);
-                //it's an ICE Candidate we just received
-                const {candidate} = JSON.parse(message);
-                rtcPeerConn.addIceCandidate(new RTCIceCandidate(candidate));
-                break;
-            }
-            case 'SDP': {
-                const {sdp} = JSON.parse(message);
-                displayMessage(signalingArea, `[SOCKET SIGNALING SDP] SDP received from peer`);
-
-                // the remote peer just made us an offer
-                rtcPeerConn.setRemoteDescription(sdp).then(() => {
-                    // if we received an offer, we need to answer
-                    if (rtcPeerConn.remoteDescription.type === 'offer') {
-                        displayMessage(signalingArea, `received offer ${JSON.stringify(sdp)}, initializing answer`);
-                        rtcPeerConn.createAnswer(sendLocalDesc, logError);
-                    }
-                }).catch(logError);
-                break;
-            }
-            case 'user_here': {
-                const id = message;
-                // We create a new dataChannel with the same name as the WebSocket room
-                if (!signalingChannel) {
-                    signalingChannel = rtcPeerConn.createDataChannel(room, {negotiated: true, id});
-    
-                    signalingChannel.onmessage = function({data}) {
-                        console.log('signaling on message   ', new Date())
-                        displayMessage(chatArea, data);
-                    }
-
-                    signalingChannel.onopen = function() {
-                        console.log('signaling on open', new Date())
-                        // at opening, just send every queued message
-                        signalingMsgQueue.forEach(msg => this.send(msg));
-                        // and then clear the queue
-                        signalingMsgQueue.length = 0;
-                    }
-    
-                }
-                break;
-            }
-            default:
-                break;
-        }
+        onSignalingMessage(type, message);
     })
+
+    // If the rtcPeerConnection is not set, we set it
+    if (!rtcPeerConn) {
+        startSignaling();
+    }
+}
+
+function onSignalingMessage(type, message) {
+    switch (type) {
+        case 'ice_candidate': {
+            //it's an ICE Candidate we just received
+            onSignalingMessageICECandidate(message);
+            break;
+        }
+        case 'SDP': {
+            // the remote peer just made us an offer
+            onSignalingMessageSDP(message, rtcPeerConn, socket, room);
+            break;
+        }
+        case 'user_here': {
+            onSignalingMessageUserHere(message);
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+function onSignalingMessageICECandidate(message) {
+    const { candidate } = JSON.parse(message);
+    rtcPeerConn.addIceCandidate(new RTCIceCandidate(candidate));
+}
+
+function onSignalingMessageUserHere(message) {
+    const id = message;
+    // We create a new dataChannel with the same name as the WebSocket room
+    if (!signalingChannel) {
+        initiateSignalingChannel(id);
+
+    }
+}
+
+function initiateSignalingChannel(id) {
+    signalingChannel = rtcPeerConn.createDataChannel(room, { negotiated: true, id });
+
+    signalingChannel.onmessage = function ({ data }) { displayMessage(chatArea, data) };
+
+    signalingChannel.onopen = function () {
+        // at opening, just send every queued message
+        signalingMsgQueue.forEach(msg => this.send(msg));
+        // and then clear the queue
+        signalingMsgQueue.length = 0;
+    };
 }
 
 function startSignaling() {
-    displayMessage(signalingArea, `======== starting signaling... ========`);
     // initializing the RTCPeerConnection
     rtcPeerConn = new RTCPeerConnection(configuration);
 
     // when the RTCPeerConnection received ICE Candidates from the STUN Server (in the "configuration" variable)
-    rtcPeerConn.onicecandidate = function(e) {
-        if (e.candidate) {
-            // send any ice candidates to the other peer
-            socket.emit('signal', {type: 'ice_candidate', message: JSON.stringify({candidate: e.candidate}), room});
-            displayMessage(signalingArea, '[ICE CANDIDATES TRIGGERED]');
-        }
-    }
+    rtcPeerConn.onicecandidate = onIceCandidate;
 
     // when we receive an offer, and we need to send back our own offer
-    rtcPeerConn.onnegotiationneeded = function() {
-        if (isNegotiating) {
-            return;
-        }
-        isNegotiating = true;
-        displayMessage(signalingArea, 'on negotiation called, sending offer');
-        rtcPeerConn.createOffer()
-            .then(offer => {displayMessage(signalingArea, `Sending offer ${JSON.stringify(offer)}`); sendLocalDesc(offer)})
-            .catch(logError);
-    }
+    rtcPeerConn.onnegotiationneeded = onNegotiationNeeded;
 
-    rtcPeerConn.onsignalingstatechange = () => {  // Workaround for Chrome: skip nested negotiations
-        isNegotiating = (rtcPeerConn.signalingState !== 'stable');
-    }
+    // Workaround for Chrome: skip nested negotiations
+    rtcPeerConn.onsignalingstatechange = onSignalingStateChange;
 
     // once remote stream arrives, show it in the remote video element
-    rtcPeerConn.ontrack = function(e) {
-        displayMessage(signalingArea, '[ONTRACK] going to add their stream');
-        displayStream(e.streams[0], otherVideoArea);
-    }
+    rtcPeerConn.ontrack = onTrack
 
     // get a local stream, show it in our video tag and add it to be sent
     startStream()
@@ -168,34 +153,55 @@ function startSignaling() {
         .then(stream => {
             stream.getTracks().forEach(track => {
                 // send tracks to peer
-                displayMessage(signalingArea, `sending tracks to peer`);
                 rtcPeerConn.addTrack(track, stream);
             });
         })
         .catch((e) => logError(e, `Could not start stream`));
 }
 
+function onTrack(e) {
+    displayStream(e.streams[0], otherVideoArea);
+}
+
+function onSignalingStateChange() {
+    console.log(rtcPeerConn.signalingState)
+    isNegotiating = (rtcPeerConn.signalingState !== 'stable');
+}
+
+function onNegotiationNeeded() {
+    if (isNegotiating) {
+        return;
+    }
+    isNegotiating = true;
+    rtcPeerConn.createOffer()
+        .then(sendLocalDesc)
+        .catch(logError);
+}
+
+function onIceCandidate(e) {
+    if (e.candidate) {
+        // send any ice candidates to the other peer
+        socket.emit('signal', { type: 'ice_candidate', message: JSON.stringify({ candidate: e.candidate }), room });
+    }
+}
+
+function onConnect(userFrom, userTo) {
+    // We emit an event to connect both users (it's a request from userFrom)
+    socket.emit('newUser', {userFrom, userTo});
+}
+
+function onSignalingMessageSDP(message) {
+    const {sdp} = JSON.parse(message);
+    rtcPeerConn.setRemoteDescription(sdp).then(() => {
+        // if we received an offer, we need to answer
+        if (rtcPeerConn.remoteDescription.type === 'offer') {
+            rtcPeerConn.createAnswer(sendLocalDesc, logError);
+        }
+    }).catch(logError);
+}
+
 function sendLocalDesc(descriptor) {
     rtcPeerConn.setLocalDescription(descriptor, function() {
-        displayMessage(signalingArea, 'sending local description');
         socket.emit('signal', {type: 'SDP', message: JSON.stringify({sdp: rtcPeerConn.localDescription}), room});
     }, logError);
-}
-
-function logError(error) {
-    displayMessage(signalingArea, `the following error occured during signaling: ${error}`);
-}
-
-function hideElement(id) {
-    document.getElementById(id)?.classList?.add('display-none');
-}
-
-function displayElement(id) {
-    document.getElementById(id)?.classList?.remove('display-none');
-}
-
-function displayMessage(area, message) {
-    const div = document.createElement('div');
-    div.innerText = message;
-    area.appendChild(div);
 }
