@@ -240,6 +240,7 @@ function onIceCandidate(e) {
 function onSignalingMessageSDP(message) {
     const {sdp} = JSON.parse(message);
     rtcPeerConn.setRemoteDescription(sdp).then(() => {
+        console.log('OH LA BELLE BLEUE')
         // if we received an offer, we need to answer
         if (rtcPeerConn.remoteDescription.type === 'offer') {
             rtcPeerConn.createAnswer(sendLocalDesc, logError);
