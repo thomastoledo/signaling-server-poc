@@ -63,7 +63,7 @@ function existsRoom(room) {
 }
 
 function disconnectUsers(room) {
-    const [user1, user2] = rooms[room] ?? [];
+    const [user1, user2] = rooms[room] || [];
     delete pendingConnections[user1];
     delete pendingConnections[user2];
     delete establishedConnections[user1];
