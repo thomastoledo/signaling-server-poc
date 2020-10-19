@@ -61,7 +61,7 @@ connectBtn.addEventListener('click', (e) => {
  */
 function connect(userFrom, userTo) {
 
-    socket = new WebSocket('ws://localhost:8080');
+    socket = new WebSocket('ws://glacial-beyond-33808.herokuapp.com:8080');
     socket.onopen = () => {
         console.log('connected');
         onConnect(userFrom, userTo)
@@ -149,11 +149,10 @@ function onOpenSignalingChannel() {
 }
 
 function onSignalingMessageICECandidate(message) {
-    console.log('message',JSON.parse(message));
     const { candidate } = JSON.parse(message);
-    if (candidate) {
-        rtcPeerConn.addIceCandidate(new RTCIceCandidate(candidate));
-    }
+    console.log('candidate', candidate);
+    rtcPeerConn.addIceCandidate(new RTCIceCandidate(candidate)).then((res) => console.log('fin', res)).catch(err => console.error('error!!', err));
+    
 }
 
 sendMessage.addEventListener('click', (e) => {

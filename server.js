@@ -1,25 +1,26 @@
-const PORT = 8000;
+const chatServer = require('./chat-server');
+
+const WebSocketServer = require("ws").Server
+const PORT = process.env.PORT || 8000;
 
 const express = require('express');
 const app = express();
-const serverApp = require('http').createServer(app);
 
-const chatServer = require('./chat-server');
+
+const server = require('http').createServer(app);
+
 
 app.use(express.static(__dirname + '/public'));
 app.get('/', function(req, res) {
 	res.render('index.ejs');
 });
 
-serverApp.listen(PORT);
+server.listen(PORT);
 
-const WebSocket = require('ws');
-const server = new WebSocket.Server({
-  port: 8080
-});
+const wss = new WebSocketServer({server});
 
 let sockets = [];
-server.on('connection', function(socket) {
+wss.on('connection', function(socket) {
   sockets.push(socket);
 
   socket.on('message', function(msg) {
@@ -78,6 +79,7 @@ function onNewUser({userFrom, userTo}, socket) {
 
 function onSignal({signalType, message}, socket) {
   const signalingMsg = prepareMsg({type: TYPES.SIGNAL_MESSAGE_TO_CLIENT, content: {signalType, message, room: socket.room}});
+  console.log('signaling message to broadcast', signalingMsg);
   broadcastToRoomButMe(signalingMsg, socket);
 }
 
@@ -99,5 +101,7 @@ function broadcastToMe(msg, socket) {
 }
 
 function broadcastToRoomButMe(msg, currSocket) {
-  sockets.filter(socket => socket.room === currSocket.room && socket !== currSocket).forEach(socket => socket.send(msg));
+  sockets.filter(socket => socket.room === currSocket.room && socket !== currSocket).forEach((socket, i) => {
+    socket.send(msg)
+  });
 }
