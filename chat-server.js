@@ -3,12 +3,10 @@ const establishedConnections = {};
 const rooms = {};
 const uuids = {};
 
-let signalingId = 0;
+let signalingId = 1;
 
 function connectUsers(userFrom, userTo, socket) {
     let room;
-    console.log('alreadyAsked(userFrom, userTo)', alreadyAsked(userFrom, userTo));
-    console.log('alreadyAsked(userTo, userFrom)', alreadyAsked(userTo, userFrom));
     if (!alreadyAsked(userFrom, userTo)) {
         if (!alreadyAsked(userTo, userFrom)) {
             startConnectionBetweenUsers(userFrom, userTo);
@@ -35,16 +33,16 @@ function generateSignalingIdForRoom(room) {
 
 function joinRoom(room, socket) {
     console.log(`Joingin room ${room}`);
-    socket.join(room);
+    socket.room = room;
 }
 
 function startConnectionBetweenUsers(user1, user2) {
     pendingConnections[user1] = user2;
-    console.log(`start connection between users ${user1} and ${user2}`);
+    console.log(`starting connection between users ${user1} and ${user2}`);
 }
 
 function finishConnectionBetweenUsers(user2, user1) {
-    console.log(`finish connection between users ${user1} and ${user2}`);
+    console.log(`finishing connection between users ${user1} and ${user2}`);
     establishedConnections[user1] = user2;
     delete pendingConnections[user1];
     delete pendingConnections[user2];
@@ -57,11 +55,6 @@ function alreadyAsked(userTo, userFrom) {
 
 function areUsersConnected(user1, user2) {
     return establishedConnections[user1] === user2 || establishedConnections[user2] === user1;
-}
-
-function getRoom(user1, user2) {
-    const room = establishedConnections[user1] ? `${user2}${user1}` : `${user1}${user2}`;
-    return room.replace(' ', '');
 }
 
 function existsRoom(room) {
@@ -81,7 +74,6 @@ function disconnectUsers(room) {
 module.exports = {
     connectUsers,
     areUsersConnected,
-    getRoom,
     disconnectUsers,
     existsRoom,
     generateSignalingIdForRoom

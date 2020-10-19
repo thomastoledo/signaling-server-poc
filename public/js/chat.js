@@ -29,6 +29,20 @@ let rtcPeerConn;
 
 let isNegotiating = false;
 
+const TYPES = {
+    NEW_USER: 'newUser',
+    SIGNAL_MESSAGE_FROM_CLIENT: 'signal_message_from_client',
+    DISCONNECTING: 'disconnecting',
+    JOINED_ROOM: 'joined_room',
+    SIGNAL_MESSAGE_TO_CLIENT: 'signal_message_to_client'
+  }
+const SIGNAL_TYPES = {
+    USER_HERE: 'userHere',
+    ICE_CANDIDATE: 'ice_candidate',
+    SDP: 'SDP'
+}
+
+
 connectBtn.addEventListener('click', (e) => {
     e.preventDefault();
     if (!name.value || !recipientName.value) {
@@ -40,41 +54,22 @@ connectBtn.addEventListener('click', (e) => {
     message.focus();
 });
 
-sendMessage.addEventListener('click', (e) => {
-    e.preventDefault();
-    if (!message.value) {
-        return;
-    }
-
-    // if it's open we send, else we queue
-    if (signalingChannel.readyState === 'open') {
-        signalingChannel.send(message.value);
-    } else {
-        signalingMsgQueue.push(message.value);
-    }
-    displayMessage(chatArea, message.value);
-    message.value = '';
-});
-
 /**
  * @brief connect two users via webRTC
  * @param {string} userFrom 
  * @param {string} userTo 
  */
 function connect(userFrom, userTo) {
-    // Connexion au server SocketIO
-    socket = io();
-    // When the socket is connected to the server
-    socket.on('connect', () => onConnect(userFrom, userTo));
 
-    // When a user joined a room
-    socket.on('joined_room', (res) => { room = res.room });
+    socket = new WebSocket('ws://localhost:8080');
+    socket.onopen = () => {
+        console.log('connected');
+        onConnect(userFrom, userTo)
+    }
 
-    // Now those are our signaling events
-    socket.on('signaling_message', ({type, message}) => {
-
-        onSignalingMessage(type, message);
-    })
+    socket.onmessage = (msg) => {
+        handleMessage(parseMsg(msg.data));
+    }
 
     // If the rtcPeerConnection is not set, we set it
     if (!rtcPeerConn) {
@@ -82,30 +77,51 @@ function connect(userFrom, userTo) {
     }
 }
 
-function onSignalingMessage(type, message) {
+function onConnect(userFrom, userTo) {
+    console.log('onConnect')
+    socket.send(prepareMsg({type: TYPES.NEW_USER, content: {userFrom, userTo}}));
+}
+
+function prepareMsg(msg) {
+    return JSON.stringify(msg);
+}
+
+function parseMsg(msg) {
+    return JSON.parse(msg);
+}
+
+function handleMessage({type, content}) {
     switch (type) {
-        case 'ice_candidate': {
+        case TYPES.JOINED_ROOM:
+            room = content.room;
+            break;
+        case TYPES.SIGNAL_MESSAGE_TO_CLIENT: 
+            onSignalingMessage(content);
+            break;
+        default:
+            break;
+      };
+}
+
+function onSignalingMessage({signalType, message}) {
+    switch (signalType) {
+        case SIGNAL_TYPES.ICE_CANDIDATE: {
             //it's an ICE Candidate we just received
             onSignalingMessageICECandidate(message);
             break;
         }
-        case 'SDP': {
+        case SIGNAL_TYPES.SDP: {
             // the remote peer just made us an offer
             onSignalingMessageSDP(message, rtcPeerConn, socket, room);
             break;
         }
-        case 'user_here': {
+        case SIGNAL_TYPES.USER_HERE: {
             onSignalingMessageUserHere(message);
             break;
         }
         default:
             break;
     }
-}
-
-function onSignalingMessageICECandidate(message) {
-    const { candidate } = JSON.parse(message);
-    rtcPeerConn.addIceCandidate(new RTCIceCandidate(candidate));
 }
 
 function onSignalingMessageUserHere(message) {
@@ -131,6 +147,33 @@ function onOpenSignalingChannel() {
     // and then clear the queue
     signalingMsgQueue.length = 0;
 }
+
+function onSignalingMessageICECandidate(message) {
+    console.log('message',JSON.parse(message));
+    const { candidate } = JSON.parse(message);
+    if (candidate) {
+        rtcPeerConn.addIceCandidate(new RTCIceCandidate(candidate));
+    }
+}
+
+sendMessage.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (!message.value) {
+        return;
+    }
+
+    // if it's open we send, else we queue
+    if (signalingChannel.readyState === 'open') {
+        signalingChannel.send(message.value);
+    } else {
+        signalingMsgQueue.push(message.value);
+    }
+    displayMessage(chatArea, message.value);
+    message.value = '';
+});
+
+
+
 
 function startSignaling() {
     // initializing the RTCPeerConnection
@@ -181,14 +224,11 @@ function onNegotiationNeeded() {
 function onIceCandidate(e) {
     if (e.candidate) {
         // send any ice candidates to the other peer
-        socket.emit('signal', { type: 'ice_candidate', message: JSON.stringify({ candidate: e.candidate }), room });
+        console.log('onIceCandidate');
+        socket.send(prepareMsg({type: TYPES.SIGNAL_MESSAGE_FROM_CLIENT, content: {signalType: SIGNAL_TYPES.ICE_CANDIDATE, message: JSON.stringify({ candidate: e.candidate })}}));
     }
 }
 
-function onConnect(userFrom, userTo) {
-    // We emit an event to connect both users (it's a request from userFrom)
-    socket.emit('newUser', {userFrom, userTo});
-}
 
 function onSignalingMessageSDP(message) {
     const {sdp} = JSON.parse(message);
@@ -202,6 +242,7 @@ function onSignalingMessageSDP(message) {
 
 function sendLocalDesc(descriptor) {
     rtcPeerConn.setLocalDescription(descriptor, function() {
-        socket.emit('signal', {type: 'SDP', message: JSON.stringify({sdp: rtcPeerConn.localDescription}), room});
+        console.log('sendLocalDesc');
+        socket.send(prepareMsg({type: TYPES.SIGNAL_MESSAGE_FROM_CLIENT, content: {signalType: SIGNAL_TYPES, message: JSON.stringify({sdp: rtcPeerConn.localDescription})}}));
     }, logError);
-}
+}    

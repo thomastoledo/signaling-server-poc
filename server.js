@@ -1,10 +1,8 @@
-const PORT = process.env.PORT || 8080;
+const PORT = 8000;
 
 const express = require('express');
 const app = express();
-const server = require('http').createServer(app);
-const options = { /* ... */ };
-const io = require('socket.io')(server, options);
+const serverApp = require('http').createServer(app);
 
 const chatServer = require('./chat-server');
 
@@ -13,42 +11,93 @@ app.get('/', function(req, res) {
 	res.render('index.ejs');
 });
 
-io.on('connect', (socket) => {
-	socket.on('newUser', function({userFrom, userTo}) {
-		const userHereMsg = `User ${userFrom} wants to connect with ${userTo}`;
+serverApp.listen(PORT);
 
-		console.log(userHereMsg);
-
-		chatServer.connectUsers(userFrom, userTo, socket);
-		const room = chatServer.getRoom(userFrom, userTo);
-		const signalingUiid = chatServer.generateSignalingIdForRoom(room);
-		io.to(room).emit('joined_room', {room});
-
-		io.to(room).emit('signaling_message', { type: 'user_here', message: signalingUiid});
-
-		if (chatServer.areUsersConnected(userFrom, userTo)) {
-			console.log(`User ${userFrom} and user ${userTo} are now connected to room ${room}`);
-		}
-	});
-
-	socket.on('message', function({message}) {
-		console.log(`New message sent: ${message}`);
-	});
-
-	socket.on('signal', function({type, message, room}) {
-		socket.to(room).emit('signaling_message', {type, message});
-	});
-
-	socket.on('disconnecting', function() {
-		console.log('disconnecting from socket');
-		Object.keys(this.rooms)
-		.filter(room => chatServer.existsRoom(room))
-		.forEach(room => {
-			chatServer.disconnectUsers(room);
-		})
-	})
+const WebSocket = require('ws');
+const server = new WebSocket.Server({
+  port: 8080
 });
 
-console.log(`server started on port ${PORT}`);
+let sockets = [];
+server.on('connection', function(socket) {
+  sockets.push(socket);
 
-server.listen(PORT);
+  socket.on('message', function(msg) {
+    handleMessage(parseMsg(msg), this);
+  });
+
+  // When a socket closes, or disconnects, remove it from the array.
+  socket.on('close', function() {
+    sockets = sockets.filter(s => s !== socket);
+  });
+});
+
+const TYPES = {
+  NEW_USER: 'newUser',
+  SIGNAL_MESSAGE_FROM_CLIENT: 'signal_message_from_client',
+  DISCONNECTING: 'disconnecting',
+  JOINED_ROOM: 'joined_room',
+  SIGNAL_MESSAGE_TO_CLIENT: 'signal_message_to_client'
+}
+
+const SIGNAL_TYPES = {
+  USER_HERE: 'userHere'
+}
+
+function handleMessage({type, content}, socket) {
+  switch (type) {
+    case TYPES.NEW_USER:
+      onNewUser(content, socket);
+      break;
+    case TYPES.SIGNAL_MESSAGE_FROM_CLIENT: 
+      onSignal(content, socket);
+      break;
+    case TYPES.DISCONNECTING:
+      onDisconnecting();
+      break;
+    default:
+      break;
+  };
+}
+
+function onNewUser({userFrom, userTo}, socket) {
+
+    chatServer.connectUsers(userFrom, userTo, socket);
+    const signalingUiid = chatServer.generateSignalingIdForRoom(socket.room);
+    
+    const signalingMsg = prepareMsg({type: TYPES.SIGNAL_MESSAGE_TO_CLIENT, content: {signalType: SIGNAL_TYPES.USER_HERE, message: signalingUiid}});
+    broadcastToMe(signalingMsg, socket);
+    
+    const roomMsg = prepareMsg({type: TYPES.JOINED_ROOM, content: {room: socket.room}});
+    broadcastToMe(roomMsg, socket);
+    
+		if (chatServer.areUsersConnected(userFrom, userTo)) {
+			console.log(`User ${userFrom} and user ${userTo} are now connected to room ${socket.room}`);
+    }
+}
+
+function onSignal({signalType, message}, socket) {
+  const signalingMsg = prepareMsg({type: TYPES.SIGNAL_MESSAGE_TO_CLIENT, content: {signalType, message, room: socket.room}});
+  broadcastToRoomButMe(signalingMsg, socket);
+}
+
+function onDisconnecting(socket) {
+  	console.log('disconnecting from socket');
+		chatServer.disconnectUsers(socket.room);
+}
+
+function prepareMsg(msg) {
+  return JSON.stringify(msg);
+}
+
+function parseMsg(msg) {
+  return JSON.parse(msg);
+}
+
+function broadcastToMe(msg, socket) {
+  socket.send(msg);
+}
+
+function broadcastToRoomButMe(msg, currSocket) {
+  sockets.filter(socket => socket.room === currSocket.room && socket !== currSocket).forEach(socket => socket.send(msg));
+}
