@@ -107,11 +107,13 @@ function onSignalingMessage({signalType, message}) {
     switch (signalType) {
         case SIGNAL_TYPES.ICE_CANDIDATE: {
             //it's an ICE Candidate we just received
+            console.info('ICE CANDIDATE', new Date());
             onSignalingMessageICECandidate(message);
             break;
         }
         case SIGNAL_TYPES.SDP: {
             // the remote peer just made us an offer
+            console.info('SDP', new Date());
             onSignalingMessageSDP(message, rtcPeerConn, socket, room);
             break;
         }
