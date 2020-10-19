@@ -37,6 +37,7 @@ const TYPES = {
     JOINED_ROOM: 'joined_room',
     SIGNAL_MESSAGE_TO_CLIENT: 'signal_message_to_client'
   }
+  
 const SIGNAL_TYPES = {
     USER_HERE: 'userHere',
     ICE_CANDIDATE: 'ice_candidate',
@@ -252,7 +253,7 @@ function onSignalingMessageSDP(message) {
 function sendLocalDesc(descriptor) {
     rtcPeerConn.setLocalDescription(descriptor, function() {
         console.log('sendLocalDesc');
-        socket.send(prepareMsg({type: TYPES.SIGNAL_MESSAGE_FROM_CLIENT, content: {signalType: SIGNAL_TYPES, message: JSON.stringify({sdp: rtcPeerConn.localDescription})}}));
+        socket.send(prepareMsg({type: TYPES.SIGNAL_MESSAGE_FROM_CLIENT, content: {signalType: SIGNAL_TYPES.SDP, message: JSON.stringify({sdp: rtcPeerConn.localDescription})}}));
     }, logError);
 }    
 
