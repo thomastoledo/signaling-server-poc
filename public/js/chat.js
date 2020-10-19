@@ -24,6 +24,7 @@ let socket;
 
 let signalingChannel;
 const signalingMsgQueue = [];
+const candidatesQueue = [];
 const configuration = {iceServers: [{url: 'stun:stun.l.google.com:19302'}]};
 let rtcPeerConn;
 
@@ -153,7 +154,12 @@ function onOpenSignalingChannel() {
 function onSignalingMessageICECandidate(message) {
     const { candidate } = JSON.parse(message);
     console.log('candidate', candidate);
-    rtcPeerConn.addIceCandidate(new RTCIceCandidate(candidate)).then((res) => console.log('fin', res)).catch(err => console.error('error!!', err));
+
+    if(!rtcPeerConn || !rtcPeerConn.remoteDescription.type){
+        candidatesQueue.push(candidate);
+    } else {
+        rtcPeerConn.addIceCandidate(new RTCIceCandidate(candidate)).then((res) => console.log('fin', res)).catch(err => console.error('error!!', err));
+    }
     
 }
 
@@ -238,6 +244,7 @@ function onSignalingMessageSDP(message) {
         if (rtcPeerConn.remoteDescription.type === 'offer') {
             rtcPeerConn.createAnswer(sendLocalDesc, logError);
         }
+        sendQueuedCandidates();
     }).catch(logError);
 }
 
@@ -247,3 +254,9 @@ function sendLocalDesc(descriptor) {
         socket.send(prepareMsg({type: TYPES.SIGNAL_MESSAGE_FROM_CLIENT, content: {signalType: SIGNAL_TYPES, message: JSON.stringify({sdp: rtcPeerConn.localDescription})}}));
     }, logError);
 }    
+
+function sendQueuedCandidates() {
+    candidatesQueue.forEach(candidate => {
+        rtcPeerConn.addIceCandidate(new RTCIceCandidate(candidate)).then((res) => console.log('fin', res)).catch(err => console.error('error!!', err));
+    });
+}
