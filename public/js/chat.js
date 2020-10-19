@@ -37,7 +37,7 @@ const TYPES = {
     JOINED_ROOM: 'joined_room',
     SIGNAL_MESSAGE_TO_CLIENT: 'signal_message_to_client'
   }
-  
+
 const SIGNAL_TYPES = {
     USER_HERE: 'userHere',
     ICE_CANDIDATE: 'ice_candidate',
@@ -65,7 +65,6 @@ function connect(userFrom, userTo) {
 
     socket = new WebSocket('wss://glacial-beyond-33808.herokuapp.com');
     socket.onopen = () => {
-        console.log('connected');
         onConnect(userFrom, userTo)
     }
 
@@ -80,7 +79,6 @@ function connect(userFrom, userTo) {
 }
 
 function onConnect(userFrom, userTo) {
-    console.log('onConnect')
     socket.send(prepareMsg({type: TYPES.NEW_USER, content: {userFrom, userTo}}));
 }
 
@@ -109,13 +107,11 @@ function onSignalingMessage({signalType, message}) {
     switch (signalType) {
         case SIGNAL_TYPES.ICE_CANDIDATE: {
             //it's an ICE Candidate we just received
-            console.info('ICE CANDIDATE', new Date());
             onSignalingMessageICECandidate(message);
             break;
         }
         case SIGNAL_TYPES.SDP: {
             // the remote peer just made us an offer
-            console.info('SDP', new Date());
             onSignalingMessageSDP(message, rtcPeerConn, socket, room);
             break;
         }
@@ -154,12 +150,11 @@ function onOpenSignalingChannel() {
 
 function onSignalingMessageICECandidate(message) {
     const { candidate } = JSON.parse(message);
-    console.log('candidate', candidate);
 
     if(!(rtcPeerConn?.remoteDescription?.type)){
         candidatesQueue.push(candidate);
     } else {
-        rtcPeerConn.addIceCandidate(new RTCIceCandidate(candidate)).then((res) => console.log('fin', res)).catch(err => console.error('error!!', err));
+        rtcPeerConn.addIceCandidate(new RTCIceCandidate(candidate)).catch(err => console.error('error!!', err));
     }
     
 }
@@ -232,7 +227,6 @@ function onNegotiationNeeded() {
 function onIceCandidate(e) {
     if (e.candidate) {
         // send any ice candidates to the other peer
-        console.log('onIceCandidate');
         socket.send(prepareMsg({type: TYPES.SIGNAL_MESSAGE_FROM_CLIENT, content: {signalType: SIGNAL_TYPES.ICE_CANDIDATE, message: JSON.stringify({ candidate: e.candidate })}}));
     }
 }
@@ -241,7 +235,6 @@ function onIceCandidate(e) {
 function onSignalingMessageSDP(message) {
     const {sdp} = JSON.parse(message);
     rtcPeerConn.setRemoteDescription(sdp).then(() => {
-        console.log('OH LA BELLE BLEUE')
         // if we received an offer, we need to answer
         if (rtcPeerConn.remoteDescription.type === 'offer') {
             rtcPeerConn.createAnswer(sendLocalDesc, logError);
@@ -252,13 +245,12 @@ function onSignalingMessageSDP(message) {
 
 function sendLocalDesc(descriptor) {
     rtcPeerConn.setLocalDescription(descriptor, function() {
-        console.log('sendLocalDesc');
         socket.send(prepareMsg({type: TYPES.SIGNAL_MESSAGE_FROM_CLIENT, content: {signalType: SIGNAL_TYPES.SDP, message: JSON.stringify({sdp: rtcPeerConn.localDescription})}}));
     }, logError);
 }    
 
 function sendQueuedCandidates() {
     candidatesQueue.forEach(candidate => {
-        rtcPeerConn.addIceCandidate(new RTCIceCandidate(candidate)).then((res) => console.log('fin', res)).catch(err => console.error('error!!', err));
+        rtcPeerConn.addIceCandidate(new RTCIceCandidate(candidate)).catch(err => console.error('error!!', err));
     });
 }
