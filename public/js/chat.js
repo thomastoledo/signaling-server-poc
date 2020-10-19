@@ -61,7 +61,7 @@ connectBtn.addEventListener('click', (e) => {
  */
 function connect(userFrom, userTo) {
 
-    socket = new WebSocket('ws://glacial-beyond-33808.herokuapp.com:8080');
+    socket = new WebSocket('wss://glacial-beyond-33808.herokuapp.com');
     socket.onopen = () => {
         console.log('connected');
         onConnect(userFrom, userTo)
