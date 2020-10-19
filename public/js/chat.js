@@ -155,7 +155,7 @@ function onSignalingMessageICECandidate(message) {
     const { candidate } = JSON.parse(message);
     console.log('candidate', candidate);
 
-    if(!rtcPeerConn || !rtcPeerConn.remoteDescription.type){
+    if(!rtcPeerConn?.remoteDescription?.type){
         candidatesQueue.push(candidate);
     } else {
         rtcPeerConn.addIceCandidate(new RTCIceCandidate(candidate)).then((res) => console.log('fin', res)).catch(err => console.error('error!!', err));
