@@ -67,11 +67,11 @@ function onNewUser({userFrom, userTo}, socket) {
     chatServer.connectUsers(userFrom, userTo, socket);
     const signalingUiid = chatServer.generateSignalingIdForRoom(socket.room);
     
-    const signalingMsg = prepareMsg({type: TYPES.SIGNAL_MESSAGE_TO_CLIENT, content: {signalType: SIGNAL_TYPES.USER_HERE, message: signalingUiid}});
-    broadcastToMe(signalingMsg, socket);
-    
     const roomMsg = prepareMsg({type: TYPES.JOINED_ROOM, content: {room: socket.room}});
     broadcastToMe(roomMsg, socket);
+    
+    const signalingMsg = prepareMsg({type: TYPES.SIGNAL_MESSAGE_TO_CLIENT, content: {signalType: SIGNAL_TYPES.USER_HERE, message: signalingUiid}});
+    broadcastToMe(signalingMsg, socket);
     
 		if (chatServer.areUsersConnected(userFrom, userTo)) {
 			console.log(`User ${userFrom} and user ${userTo} are now connected to room ${socket.room}`);

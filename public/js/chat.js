@@ -129,7 +129,6 @@ function onSignalingMessageUserHere(message) {
     // We create a new dataChannel with the same name as the WebSocket room
     if (!signalingChannel) {
         initiateSignalingChannel(id);
-
     }
 }
 
