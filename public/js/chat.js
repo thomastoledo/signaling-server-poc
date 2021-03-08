@@ -29,6 +29,7 @@ const configuration = {iceServers: [{urls: 'stun:stun.l.google.com:19302'}]};
 let rtcPeerConn;
 
 let isNegotiating = false;
+let isConnected = false;
 
 const TYPES = {
     NEW_USER: 'newUser',
@@ -62,8 +63,11 @@ connectBtn.addEventListener('click', (e) => {
  * @param {string} userTo 
  */
 function connect(userFrom, userTo) {
+    // const hostName = location.hostname === 'localhost' ? '127.0.0.1' : location.hostname;
+    // const port = location.port;
+    // const wsUrl = `wss://${hostName}:${port}/notify`;
 
-    socket = new WebSocket('wss://glacial-beyond-33808.herokuapp.com');
+    socket = new WebSocket(`wss://localhost:8000`);
     socket.onopen = () => {
         onConnect(userFrom, userTo);
 
@@ -191,6 +195,8 @@ function startSignaling() {
     // Workaround for Chrome: skip nested negotiations
     rtcPeerConn.onsignalingstatechange = onSignalingStateChange;
 
+    rtcPeerConn.onConnectionStateChange = onConnectionStateChange;
+
     // once remote stream arrives, show it in the remote video element
     rtcPeerConn.ontrack = onTrack
 
@@ -215,6 +221,11 @@ function onSignalingStateChange() {
     isNegotiating = (rtcPeerConn.signalingState !== 'stable');
 }
 
+function onConnectionStateChange() {
+    console.log('connectionstate', rtcPeerConn.connectionState);
+    isConnected = rtcPeerConn.connectionState === 'connected';
+}
+
 function onNegotiationNeeded() {
     if (isNegotiating) {
         return;
@@ -235,6 +246,11 @@ function onIceCandidate(e) {
 
 function onSignalingMessageSDP(message) {
     const {sdp} = JSON.parse(message);
+    if (rtcPeerConn.signalingState === 'stable') {
+        console.log('salut');
+        return;
+    }
+
     rtcPeerConn.setRemoteDescription(sdp).then(() => {
         console.log('offer received');
         // if we received an offer, we need to answer
