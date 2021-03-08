@@ -25,7 +25,7 @@ let socket;
 let signalingChannel;
 const signalingMsgQueue = [];
 const candidatesQueue = [];
-const configuration = {iceServers: [{urls: 'stun:stun.liveo.fr:3478'}]};
+const configuration = {iceServers: [{urls: 'stun:stun.l.google.com:19302'}]};
 let rtcPeerConn;
 
 let isNegotiating = false;
