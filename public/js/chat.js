@@ -63,11 +63,11 @@ connectBtn.addEventListener('click', (e) => {
  * @param {string} userTo 
  */
 function connect(userFrom, userTo) {
-    // const hostName = location.hostname === 'localhost' ? '127.0.0.1' : location.hostname;
-    // const port = location.port;
-    // const wsUrl = `wss://${hostName}:${port}/notify`;
+    const hostName = location.hostname === 'localhost' ? '127.0.0.1' : location.hostname;
+    const port = location.port;
+    const wsUrl = `ws://${hostName}:${port}`;
 
-    socket = new WebSocket(`wss://localhost:8000`);
+    socket = new WebSocket(wsUrl);
     socket.onopen = () => {
         onConnect(userFrom, userTo);
 
@@ -247,7 +247,6 @@ function onIceCandidate(e) {
 function onSignalingMessageSDP(message) {
     const {sdp} = JSON.parse(message);
     if (rtcPeerConn.signalingState === 'stable') {
-        console.log('salut');
         return;
     }
 
