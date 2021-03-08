@@ -25,7 +25,7 @@ let socket;
 let signalingChannel;
 const signalingMsgQueue = [];
 const candidatesQueue = [];
-const configuration = {iceServers: [{urls: '23.21.150.121:3478'}]};
+const configuration = {iceServers: [{urls: 'stun.liveo.fr:3478'}]};
 let rtcPeerConn;
 
 let isNegotiating = false;
