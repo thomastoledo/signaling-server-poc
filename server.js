@@ -20,6 +20,7 @@ server.listen(PORT);
 const wss = new WebSocketServer({server});
 
 let sockets = [];
+
 wss.on('connection', function(socket) {
   sockets.push(socket);
 

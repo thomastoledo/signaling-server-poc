@@ -65,17 +65,18 @@ function connect(userFrom, userTo) {
 
     socket = new WebSocket('wss://glacial-beyond-33808.herokuapp.com');
     socket.onopen = () => {
-        onConnect(userFrom, userTo)
+        onConnect(userFrom, userTo);
+
+        // If the rtcPeerConnection is not set, we set it
+        if (!rtcPeerConn) {
+            startSignaling();
+        }
     }
 
     socket.onmessage = (msg) => {
         handleMessage(parseMsg(msg.data));
     }
 
-    // If the rtcPeerConnection is not set, we set it
-    if (!rtcPeerConn) {
-        startSignaling();
-    }
 }
 
 function onConnect(userFrom, userTo) {
@@ -210,6 +211,7 @@ function onTrack(e) {
 }
 
 function onSignalingStateChange() {
+    console.log('signalingstate', rtcPeerConn.signalingState);
     isNegotiating = (rtcPeerConn.signalingState !== 'stable');
 }
 
@@ -234,8 +236,10 @@ function onIceCandidate(e) {
 function onSignalingMessageSDP(message) {
     const {sdp} = JSON.parse(message);
     rtcPeerConn.setRemoteDescription(sdp).then(() => {
+        console.log('offer received');
         // if we received an offer, we need to answer
         if (rtcPeerConn.remoteDescription.type === 'offer') {
+            console.log('creating answer');
             rtcPeerConn.createAnswer(sendLocalDesc, logError);
         }
         sendQueuedCandidates();
