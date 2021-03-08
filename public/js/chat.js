@@ -64,8 +64,9 @@ connectBtn.addEventListener('click', (e) => {
  */
 function connect(userFrom, userTo) {
     const hostName = location.hostname === 'localhost' ? '127.0.0.1' : location.hostname;
+    const protocol = hostname === '127.0.01' ? 'ws' : 'wss';
     const port = location.port;
-    const wsUrl = `ws://${hostName}:${port}`;
+    const wsUrl = `${protocol}://${hostName}:${port}`;
 
     socket = new WebSocket(wsUrl);
     socket.onopen = () => {
