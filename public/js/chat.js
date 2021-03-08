@@ -155,6 +155,9 @@ function onOpenSignalingChannel() {
 
 function onSignalingMessageICECandidate(message) {
     const { candidate } = JSON.parse(message);
+    if (!candidate) {
+        return;
+    }
 
     if(!(rtcPeerConn?.remoteDescription?.type)){
         candidatesQueue.push(candidate);
