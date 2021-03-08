@@ -25,7 +25,7 @@ let socket;
 let signalingChannel;
 const signalingMsgQueue = [];
 const candidatesQueue = [];
-const configuration = {iceServers: [{url: 'stun:stun.l.google.com:19302'}]};
+const configuration = {iceServers: [{urls: '23.21.150.121:3478'}]};
 let rtcPeerConn;
 
 let isNegotiating = false;
@@ -112,7 +112,7 @@ function onSignalingMessage({signalType, message}) {
         }
         case SIGNAL_TYPES.SDP: {
             // the remote peer just made us an offer
-            onSignalingMessageSDP(message, rtcPeerConn, socket, room);
+            onSignalingMessageSDP(message);
             break;
         }
         case SIGNAL_TYPES.USER_HERE: {
